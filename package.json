@@ -1,0 +1,26 @@
+{
+  "name": "WallTiles",
+  "version": "1.0.0",
+  "description": "",
+  "dependencies": {},
+  "devDependencies": {
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.1.2"
+  },
+  "scripts": {
+    "build": "webpack --config webpack.config.js --mode=development --display-error-details --progress --color",
+    "production": "webpack --config webpack.config.js --mode=production --display-error-details --progress --color",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/snyderdan/WallTiles.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/snyderdan/WallTiles/issues"
+  },
+  "homepage": "https://github.com/snyderdan/WallTiles#readme"
+}
