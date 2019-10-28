@@ -121,14 +121,18 @@ const sketch = (p) => {
     }
 
     p.endShape(p.CLOSE);
-  }
+  };
+
+  const drawNeighbors = (x, y) => {
+
+  };
 
   const mouseInTile = (x, y) => {
     const dx = Math.abs(x - p.mouseX);
     const dy = Math.abs(y - p.mouseY);
     if (dx > Tile.radius() || dy > Tile.innerRadius()) return false;
     return dy <= - Math.sqrt(3) * dx + Math.sqrt(3) * Tile.radius();
-  }
+  };
 
   p.setup = function() {
     p.createCanvas(700, 400);
@@ -143,15 +147,17 @@ const sketch = (p) => {
   };
 
   let hoveredTile = undefined;
-  let neighborBorder = 100;
+  let insideNeighbor = undefined;
+  let neighborBorder = 220;
+
   p.draw = function() {
     p.background(220);
     for (let tile of tiles) {
       drawTile(tile.x, tile.y, p.color(tile.r_col, tile.g_col, tile.b_col));
 
-      if (mouseInTile(tile.x, tile.y)) {
+      if (hoveredTile !== tile && mouseInTile(tile.x, tile.y)) {
         hoveredTile = tile;
-        neighborBorder = 100;
+        neighborBorder = 220;
       }
 
       if (hoveredTile === tile) {
@@ -161,13 +167,25 @@ const sketch = (p) => {
           if (!tile.neighbors[i]) {
             let nX = tile.x + centerDist * p.cos(0.523599 + i*1.0472);
             let nY = tile.y + centerDist * p.sin(0.523599 + i*1.0472);
-            inBounds |= mouseInTile(nX, nY);
-            drawTile(nX, nY, p.color(220), neighborBorder);
+            let color = 220;
+
+            if (mouseInTile(nX, nY)) {
+              inBounds = true;
+              if (insideNeighbor && nX === insideNeighbor.x && nY === insideNeighbor.y) {
+                color += 5 * insideNeighbor.count;
+                insideNeighbor.count += 1;
+              } else {
+                insideNeighbor = {x: nX, y: nY, count: 0};
+              }
+            }
+
+            drawTile(nX, nY, color, neighborBorder);
             p.point(nX, nY);
           }
         }
 
         if (!inBounds) hoveredTile = undefined;
+        if (neighborBorder > 100) neighborBorder -= 20;
       }
     }
 
