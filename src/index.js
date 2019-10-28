@@ -74,7 +74,7 @@ const sketch = (p) => {
           if (!tile.neighbors[i]) {
             // calculate center of potential neighbor
             let nX = tile.x + centerDist * p.cos(PI / 6 + i * PI / 3);
-            let nY = tile.y + centerDist * p.sin(PI / 6 + i * PI / 3);
+            let nY = tile.y - centerDist * p.sin(PI / 6 + i * PI / 3);
             let color = 220;
 
             if (mouseInTile(nX, nY)) {
@@ -107,6 +107,7 @@ const sketch = (p) => {
     if (!rootTile) {
       // the first click will create the rootTile (in the real world, this will be the one getting power)
       rootTile = new Tile(p.mouseX, p.mouseY, p);
+      rootTile.root = true;
       tiles.push(rootTile);
     } else if (mouseInTile(insideOf.x, insideOf.y)) {
       // if the mouse is inside the last recorded potential neighbor that was hovered over, create new tile
@@ -117,7 +118,7 @@ const sketch = (p) => {
       for (let i=0; i<6; i++) {
         // get coordinates of potential neighbors of this new tile
         let nX = newTile.x + centerDist * p.cos(PI / 6 + i * PI / 3);
-        let nY = newTile.y + centerDist * p.sin(PI / 6 + i * PI / 3);
+        let nY = newTile.y - centerDist * p.sin(PI / 6 + i * PI / 3);
         // call .toFixed(5) in order to hide inaccuracies of floating point math
         neighbors.push({x: nX.toFixed(5), y: nY.toFixed(5), index: i});
       }
