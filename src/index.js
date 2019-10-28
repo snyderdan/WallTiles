@@ -6,6 +6,7 @@ const containerElement = document.getElementById('p5-container');
 
 const sketch = (p) => {
   let runBtn;
+  let stopBtn;
   let rootTile;
   const tiles = [];
 
@@ -45,6 +46,14 @@ const sketch = (p) => {
     runBtn.mousePressed((evt) => {
       for (let tile of tiles) {
         tile.start();
+      }
+    });
+
+    stopBtn = p.createButton('Stop');
+    stopBtn.position(70, 20);
+    stopBtn.mousePressed((evt) => {
+      for (let tile of tiles) {
+        tile.stop();
       }
     });
   };

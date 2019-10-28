@@ -8,6 +8,7 @@ export default class Tile {
   constructor(x, y) {
     this.x = x;
     this.y = y;
+    this.threadId = undefined;
 
     this.id = undefined;
     this.nextId = undefined;
@@ -80,7 +81,14 @@ export default class Tile {
   }
 
   start() {
-    setInterval(this.update.bind(this), 10);
+    this.threadId = setInterval(this.update.bind(this), 10);
+  }
+
+  stop() {
+    if (this.threadId) {
+      clearInterval(this.threadId);
+      this.threadId = undefined;
+    }
   }
 
   static nsides() {
