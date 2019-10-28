@@ -7,6 +7,7 @@ const ASSIGN_ID = 1;
 const ASSIGN_ACK = 2;
 const WAVE = 3;
 const TWO_PI = 6.28318530718;
+const RADIUS = 20;
 
 class Tile {
   constructor(x, y, p) {
@@ -21,7 +22,9 @@ class Tile {
     this.nextAssign = 0;
     this.parent = undefined;
     this.active = false;
-    this.color = this.p.color(this.p.random(0, 255), this.p.random(0, 255), this.p.random(0, 255));
+    this.r_col = Math.floor(Math.random() * 256);
+    this.g_col = Math.floor(Math.random() * 256);
+    this.b_col = Math.floor(Math.random() * 256);
     this.framestart = this.p.millis();
     this.toProcess = [];
     this.neighbors = [];
@@ -82,50 +85,8 @@ class Tile {
     }
   }
 
-  render() {
-    let increment = TWO_PI / Tile.nsides();
-
-    if (this.active) {
-      this.p.fill(this.color);
-      this.p.stroke(0);
-      this.drawNeighbors();
-    } else {
-      this.p.noFill();
-      this.p.stroke(180);
-    }
-
-    this.p.beginShape();
-    for (let i = 0; i <= TWO_PI; i += increment) {
-      let nextX = this.x + (Tile.radius() - 1) * this.p.cos(i);
-      let nextY = this.y + (Tile.radius() - 1) * this.p.sin(i);
-      this.p.vertex(nextX, nextY);
-    }
-
-    this.p.endShape(this.p.CLOSE);
-  }
-
   start() {
     setInterval(this.update.bind(this), 10);
-  }
-
-  drawNeighbors() {
-    if (markNeighbors) {
-      for (let neighbor of this.neighbors) {
-        if (!neighbor) continue;
-        this.p.point(neighbor.x, neighbor.y);
-      }
-    }
-  }
-
-  checkClick() {
-    if (this.p.dist(this.p.mouseX, this.p.mouseY, this.x, this.y) < Tile.radius() * Math.sqrt(3) / 2) {
-      this.active = !this.active;
-      for (let neighbor of this.neighbors) {
-        if (neighbor && neighbor.active) return;
-      }
-
-      this.root = true;
-    }
   }
 
   static nsides() {
@@ -133,17 +94,41 @@ class Tile {
   }
 
   static radius() {
-    return 20;
+    return RADIUS;
+  }
+
+  static innerRadius() {
+    return RADIUS * Math.sqrt(3) / 2;
   }
 }
 
 let runBtn;
+let rootTile;
 const tiles = [];
 const containerElement = document.getElementById('p5-container');
 
 const sketch = (p) => {
-  let x = 100;
-  let y = 100;
+  const drawTile = (x, y, color, border) => {
+    p.fill(color);
+    p.stroke((border) ? border : 0);
+    p.beginShape();
+
+    const increment = TWO_PI / Tile.nsides();
+    for (let i = 0; i <= TWO_PI; i += increment) {
+      let nextX = x + (Tile.radius() - 1) * p.cos(i);
+      let nextY = y + (Tile.radius() - 1) * p.sin(i);
+      p.vertex(nextX, nextY);
+    }
+
+    p.endShape(p.CLOSE);
+  }
+
+  const mouseInTile = (x, y) => {
+    const dx = Math.abs(x - p.mouseX);
+    const dy = Math.abs(y - p.mouseY);
+    if (dx > Tile.radius() || dy > Tile.innerRadius()) return false;
+    return dy <= - Math.sqrt(3) * dx + Math.sqrt(3) * Tile.radius();
+  }
 
   p.setup = function() {
     p.createCanvas(700, 400);
@@ -155,69 +140,44 @@ const sketch = (p) => {
         tile.start();
       }
     });
-
-    let offset = 0;
-    let rows = [];
-    for (let y = 0; y < 400; y += Tile.radius() * Math.sqrt(3) / 2) {
-      let row = [];
-
-      if (!offset) {
-        offset = Tile.radius() * 1.5;
-      } else {
-        offset = 0;
-      }
-
-      for (let x = 0; x < 700; x += Tile.radius() * 3) {
-        row.push(new Tile(x + offset, y, p));
-      }
-
-      rows.push(row);
-    }
-
-    for (let i = 0; i < rows.length; i++) {
-      let tmp, row = rows[i];
-      let offset = (i & 1) ? -1 : 1;
-      let offsetIndexTop = (i & 1) ? 2 : 0;
-      let nonOffsetIndexTop = (i & 1) ? 0 : 2;
-      let offsetIndexBot = (i & 1) ? 3 : 5;
-      let nonOffsetIndexBot = (i & 1) ? 5 : 3;
-
-      for (let j = 0; j < row.length; j++) {
-        let tile = row[j];
-        tiles.push(tile);
-        if ((tmp = rows[i - 2])) {
-          tile.neighbors[1] = tmp[j];
-        }
-
-        if ((tmp = rows[i - 1])) {
-          tile.neighbors[nonOffsetIndexTop] = tmp[j];
-          tile.neighbors[offsetIndexTop] = tmp[j + offset];
-        }
-
-        if ((tmp = rows[i + 1])) {
-          tile.neighbors[nonOffsetIndexBot] = tmp[j];
-          tile.neighbors[offsetIndexBot] = tmp[j + offset];
-        }
-
-        if ((tmp = rows[i + 2])) {
-          tile.neighbors[4] = tmp[j];
-        }
-      }
-    }
   };
 
+  let hoveredTile = undefined;
+  let neighborBorder = 100;
   p.draw = function() {
     p.background(220);
     for (let tile of tiles) {
-      tile.render();
+      drawTile(tile.x, tile.y, p.color(tile.r_col, tile.g_col, tile.b_col));
+
+      if (mouseInTile(tile.x, tile.y)) {
+        hoveredTile = tile;
+        neighborBorder = 100;
+      }
+
+      if (hoveredTile === tile) {
+        let inBounds = mouseInTile(tile.x, tile.y);
+        const centerDist = 2 * Tile.innerRadius();
+        for (let i=0; i<6; i++) {
+          if (!tile.neighbors[i]) {
+            let nX = tile.x + centerDist * p.cos(0.523599 + i*1.0472);
+            let nY = tile.y + centerDist * p.sin(0.523599 + i*1.0472);
+            inBounds |= mouseInTile(nX, nY);
+            drawTile(nX, nY, p.color(220), neighborBorder);
+            p.point(nX, nY);
+          }
+        }
+
+        if (!inBounds) hoveredTile = undefined;
+      }
     }
 
     p.frameRate(30);
   };
 
   p.mousePressed = function() {
-    for (let tile of tiles) {
-      tile.checkClick();
+    if (!rootTile) {
+      rootTile = new Tile(p.mouseX, p.mouseY, p);
+      tiles.push(rootTile);
     }
   };
 };
