@@ -6,7 +6,7 @@ let markNeighbors = true;
 const ASSIGN_ID = 1;
 const ASSIGN_ACK = 2;
 const WAVE = 3;
-const TWO_PI = 6.28318530718;
+const PI = 3.141592653589793;
 const RADIUS = 20;
 
 class Tile {
@@ -113,8 +113,8 @@ const sketch = (p) => {
     p.stroke((border) ? border : 0);
     p.beginShape();
 
-    const increment = TWO_PI / Tile.nsides();
-    for (let i = 0; i <= TWO_PI; i += increment) {
+    const increment = 2 * PI / Tile.nsides();
+    for (let i = 0; i <= 2 * PI; i += increment) {
       let nextX = x + (Tile.radius() - 1) * p.cos(i);
       let nextY = y + (Tile.radius() - 1) * p.sin(i);
       p.vertex(nextX, nextY);
@@ -147,7 +147,7 @@ const sketch = (p) => {
   };
 
   let hoveredTile = undefined;
-  let insideNeighbor = undefined;
+  let insideOf = undefined;
   let neighborBorder = 220;
 
   p.draw = function() {
@@ -165,17 +165,17 @@ const sketch = (p) => {
         const centerDist = 2 * Tile.innerRadius();
         for (let i=0; i<6; i++) {
           if (!tile.neighbors[i]) {
-            let nX = tile.x + centerDist * p.cos(0.523599 + i*1.0472);
-            let nY = tile.y + centerDist * p.sin(0.523599 + i*1.0472);
+            let nX = tile.x + centerDist * p.cos(PI / 6 + i * PI / 3);
+            let nY = tile.y + centerDist * p.sin(PI / 6 + i * PI / 3);
             let color = 220;
 
             if (mouseInTile(nX, nY)) {
               inBounds = true;
-              if (insideNeighbor && nX === insideNeighbor.x && nY === insideNeighbor.y) {
-                color += 5 * insideNeighbor.count;
-                insideNeighbor.count += 1;
+              if (insideOf && nX === insideOf.x && nY === insideOf.y) {
+                color += 5 * insideOf.count;
+                insideOf.count += 1;
               } else {
-                insideNeighbor = {x: nX, y: nY, count: 0};
+                insideOf = {x: nX, y: nY, count: 0};
               }
             }
 
@@ -185,7 +185,7 @@ const sketch = (p) => {
         }
 
         if (!inBounds) hoveredTile = undefined;
-        if (neighborBorder > 100) neighborBorder -= 20;
+        if (neighborBorder > 100) neighborBorder -= 10;
       }
     }
 
@@ -196,6 +196,28 @@ const sketch = (p) => {
     if (!rootTile) {
       rootTile = new Tile(p.mouseX, p.mouseY, p);
       tiles.push(rootTile);
+    } else if (mouseInTile(insideOf.x, insideOf.y)) {
+      const newTile = new Tile(insideOf.x, insideOf.y, p);
+      const centerDist = 2 * Tile.innerRadius();
+      const neighbors = [];
+
+      for (let i=0; i<6; i++) {
+        let nX = newTile.x + centerDist * p.cos(PI / 6 + i * PI / 3);
+        let nY = newTile.y + centerDist * p.sin(PI / 6 + i * PI / 3);
+        neighbors.push({x: nX.toFixed(5), y: nY.toFixed(5), index: i});
+      }
+
+      for (let tile of tiles) {
+        for (let neighbor of neighbors) {
+          if (neighbor.x === tile.x.toFixed(5) && neighbor.y === tile.y.toFixed(5)) {
+            newTile.neighbors[neighbor.index] = tile;
+            const oppositeIndex = (neighbor.index + 3) % 6;
+            tile.neighbors[oppositeIndex] = newTile;
+          }
+        }
+      }
+
+      tiles.push(newTile);
     }
   };
 };
