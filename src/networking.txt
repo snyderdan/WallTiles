@@ -1,0 +1,31 @@
+Real tiles will have 4 network 'layers' based off of the OSI model of networking. The layers are as follows with the Javascript
+implementation implementing the upper 3 layers (skipping the physical layer)
+    1) Physical layer - Transmission/receipt of bits from one node to another
+    2) Data link layer  - Send a packet of information from one direct neighbor to another. The packet will contain a payload
+        as well as the 'from' and 'to' addresses. These 'from' and 'to' values are the neighbor indexes, not necessarily
+        the IDs assigned by higher layers of the network protocol
+    3) Network layer - This network assigns a unique ID to each node. Any node will be able to send a message to any other
+    4) Application layer - The actual code issuing messages and interpreting them
+
+Layer details:
+
+Data link:
+    Packets are addressed to specific neighbors by their index. Index 0 is the upper, rightmost tile, and numbers go
+    counter-clockwise (tile above is index 1, tile below is index 4, etc).
+
+    A given node has the ability to address a specific neighbor, and no neighbors are able to receive the packet outside
+    of the sender and receiver.
+
+    All packets a node receives goes into a single buffer, where the node processes them in the order of receipt.
+
+
+Network:
+    Upon boot, the root node goes through a BFS process of assigning unique IDs to each node in the graph
+
+    From there one of two things can happen:
+        1) Each node can record it's parent node in the tree, as well as all nodes down stream of it. This information
+            will be relayed to the parent, so that it's parent is aware of all nodes downstream of each neighbor.
+
+        2) Each node performs a BFS search to identify the shortest path to each node. In such a case, each node will
+            have a lookup table, looking up which neighbor to route the packet to in order to achieve the shortest path
+            to the destination. 
