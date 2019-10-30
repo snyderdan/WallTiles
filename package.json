@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "dependencies": {
+    "auto-bind": "^3.0.0",
     "p5": "^0.10.2"
   },
   "devDependencies": {

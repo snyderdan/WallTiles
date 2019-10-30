@@ -1,68 +1,20 @@
-const RADIUS = 20;
-const PI = 3.141592653589793;
+import PhysicalTile from "./PhysicalTile";
+import NetworkNode from "./NetworkNode";
+import ApplicationNode from "./ApplicationNode";
 
-const DFS_ASSIGN_ID = 1;
-const BFS_ASSIGN_ID = 2;
-const ASSIGN_ACK = 100;
-const ASSIGN_NACK = 101;
-const COLOR_DROP = 200;
+const PI = 3.141592653589793;
 
 export default class Tile {
   constructor(x, y) {
     this.x = x;
     this.y = y;
-    this.running = false;
-    this.update = this.update.bind(this);
-
-    // core information about this particular tile
-    this.id = undefined;
-    this.root = false;
-    this.r_col = Math.floor(Math.random() * 256);
-    this.g_col = Math.floor(Math.random() * 256);
-    this.b_col = Math.floor(Math.random() * 256);
-    this.startTime = new Date().getTime();
-    this.toProcess = [];
-    this.neighbors = [];
-    for (let i = 0; i < Tile.nsides(); i++) {
-      this.neighbors[i] = null;
-    }
-
-    // information needed to be stored between update cycles
-    this.parent = undefined;
-    this.nextID = undefined;
-    this.lastMessageId = undefined;
-    this.depth = undefined;
-    this.assigning = undefined;
-    this.nextAssign = undefined;
-  }
-
-  transmit(message, neighborIndex) {
-    const neighbor = this.neighbors[neighborIndex];
-    const inverse = (neighborIndex + 3) % 6;
-    message.fromIndex = inverse;
-    message.fromId = this.id;
-    neighbor.recieve.bind(neighbor)(message);
-  }
-
-  recieve(message) {
-    this.toProcess.push(message);
-  }
-
-  nextColor() {
-    const delta = new Date().getTime() - this.startTime;
-    const angle = (2 * PI * delta / 5000) % (2 * PI);  // one full period should be 5s
-    // cycle over HSL color wheel
-    const hue = angle / (2 * PI);
-
-    return {
-      r: 255 * (hue + 0.333),
-      g: 255 * hue,
-      b: 255 * (hue - 0.333),
-    }
+    this.physical = new PhysicalTile(x, y);
+    this.network = new NetworkNode(this.physical);
+    this.application = new ApplicationNode(this.physical, this.network);
   }
 
   update() {
-    /* TODO: finish ID assignment code...for now do the drop wave
+    /* TODO: split following code to relevant layers of networking code
     if (this.root && !this.id) {
       // if we're the root tile, with no ID, begin ID assignment process
       this.id = 1;
@@ -92,7 +44,6 @@ export default class Tile {
       this.assigning = this.nextAssign;
       this.transmit({type: BFS_ASSIGN_ID, nextId: this.nextId, depth: this.depth + 1}, this.assigning);
     }
-    */
 
     if (this.root) {
       if (!this.lastMessageId) this.lastMessageId = 1;
@@ -174,6 +125,7 @@ export default class Tile {
     if (this.running) {
       window.requestAnimationFrame(this.update);
     }
+     */
   }
 
   start() {
@@ -184,16 +136,5 @@ export default class Tile {
   stop() {
     this.running = false;
   }
-
-  static nsides() {
-    return 6;
-  }
-
-  static radius() {
-    return RADIUS;
-  }
-
-  static innerRadius() {
-    return RADIUS * Math.sqrt(3) / 2;
-  }
 }
+

@@ -28,4 +28,4 @@ Network:
 
         2) Each node performs a BFS search to identify the shortest path to each node. In such a case, each node will
             have a lookup table, looking up which neighbor to route the packet to in order to achieve the shortest path
-            to the destination. 
+            to the destination.

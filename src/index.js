@@ -1,5 +1,6 @@
 import p5 from 'p5';
-import Tile from './tile';
+import Tile from './Tile';
+import PhysicalTile from "./PhysicalTile";
 
 const PI = 3.141592653589793;
 const containerElement = document.getElementById('p5-container');
@@ -15,12 +16,12 @@ const sketch = (p) => {
     p.stroke((border) ? border : 0);
     p.beginShape();
 
-    const increment = 2 * PI / Tile.nsides();
+    const increment = 2 * PI / PhysicalTile.nsides();
     // draw vertexes of hexagon
     for (let i = 0; i <= 2 * PI; i += increment) {
       // subtract 1 from radius to create small border in-between neighboring tiles
-      let nextX = x + (Tile.radius() - 1) * p.cos(i);
-      let nextY = y + (Tile.radius() - 1) * p.sin(i);
+      let nextX = x + (PhysicalTile.radius() - 1) * p.cos(i);
+      let nextY = y + (PhysicalTile.radius() - 1) * p.sin(i);
       p.vertex(nextX, nextY);
     }
 
@@ -32,10 +33,10 @@ const sketch = (p) => {
     const dx = Math.abs(x - p.mouseX);
     const dy = Math.abs(y - p.mouseY);
     // if the mouse is further than the radius, or higher than the height, it's definitely not in the tile
-    if (dx > Tile.radius() || dy > Tile.innerRadius()) return false;
+    if (dx > PhysicalTile.radius() || dy > PhysicalTile.innerRadius()) return false;
     // otherwise, check if point is below sloped side of hexagon
     // slope is -sqrt(3), offset is sqrt(3) * radius [derived from 2 points: (radius / 2, innerRadius) and (radius, 0)]
-    return dy <= - Math.sqrt(3) * dx + Math.sqrt(3) * Tile.radius();
+    return dy <= - Math.sqrt(3) * dx + Math.sqrt(3) * PhysicalTile.radius();
   };
 
   p.setup = function() {
@@ -43,7 +44,7 @@ const sketch = (p) => {
 
     runBtn = p.createButton('Run');
     runBtn.position(20, 20);
-    runBtn.mousePressed((evt) => {
+    runBtn.mousePressed(() => {
       for (let tile of tiles) {
         tile.start();
       }
@@ -51,7 +52,7 @@ const sketch = (p) => {
 
     stopBtn = p.createButton('Stop');
     stopBtn.position(70, 20);
-    stopBtn.mousePressed((evt) => {
+    stopBtn.mousePressed(() => {
       for (let tile of tiles) {
         tile.stop();
       }
@@ -66,7 +67,8 @@ const sketch = (p) => {
     p.background(220);
     for (let tile of tiles) {
       // draw existing tile
-      drawTile(tile.x, tile.y, p.color(tile.r_col, tile.g_col, tile.b_col));
+      drawTile(tile.x, tile.y,
+          p.color(tile.physical.r_col, tile.physical.g_col, tile.physical.b_col));
 
       if (hoveredTile !== tile && mouseInTile(tile.x, tile.y)) {
         // if this tile is hovered over, but is NOT the hovered tile, assign hoveredTile, and reset neighborBorder for fade in
@@ -77,10 +79,10 @@ const sketch = (p) => {
       if (hoveredTile === tile) {
         // if this tile is hovered, draw outlines of potential neighbor tiles that can be added
         let inBounds = mouseInTile(tile.x, tile.y);
-        const centerDist = 2 * Tile.innerRadius();  // distance between the center of two neighbors
+        const centerDist = 2 * PhysicalTile.innerRadius();  // distance between the center of two neighbors
         for (let i=0; i<6; i++) {
           // iterate over neighbors; only draw a potential neighbor if no neighbor is present already
-          if (!tile.neighbors[i]) {
+          if (!tile.physical.neighbors[i]) {
             // calculate center of potential neighbor
             let nX = tile.x + centerDist * p.cos(PI / 6 + i * PI / 3);
             let nY = tile.y - centerDist * p.sin(PI / 6 + i * PI / 3);
@@ -118,10 +120,10 @@ const sketch = (p) => {
       rootTile = new Tile(p.mouseX, p.mouseY, p);
       rootTile.root = true;
       tiles.push(rootTile);
-    } else if (mouseInTile(insideOf.x, insideOf.y)) {
+    } else if (insideOf && mouseInTile(insideOf.x, insideOf.y)) {
       // if the mouse is inside the last recorded potential neighbor that was hovered over, create new tile
       const newTile = new Tile(insideOf.x, insideOf.y, p);
-      const centerDist = 2 * Tile.innerRadius();
+      const centerDist = 2 * PhysicalTile.innerRadius();
       const neighbors = [];
 
       for (let i=0; i<6; i++) {
@@ -137,9 +139,9 @@ const sketch = (p) => {
         for (let neighbor of neighbors) {
           if (neighbor.x === tile.x.toFixed(5) && neighbor.y === tile.y.toFixed(5)) {
             // if they are neighbors, add them to each others neighbor lists
-            newTile.neighbors[neighbor.index] = tile;
+            newTile.physical.neighbors[neighbor.index] = tile;
             const oppositeIndex = (neighbor.index + 3) % 6;
-            tile.neighbors[oppositeIndex] = newTile;
+            tile.physical.neighbors[oppositeIndex] = newTile;
           }
         }
       }
