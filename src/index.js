@@ -2,7 +2,7 @@ import p5 from 'p5';
 import Tile from './Tile';
 import PhysicalTile from "./PhysicalTile";
 
-const PI = 3.141592653589793;
+const PI = Math.PI;
 const containerElement = document.getElementById('p5-container');
 
 const sketch = (p) => {
@@ -39,8 +39,44 @@ const sketch = (p) => {
     return dy <= - Math.sqrt(3) * dx + Math.sqrt(3) * PhysicalTile.radius();
   };
 
-  p.setup = function() {
-    p.createCanvas(700, 400);
+  p.setup = () => {
+    const cnv = p.createCanvas(window.innerWidth, window.innerHeight);
+
+    cnv.mousePressed(() => {
+      if (!rootTile) {
+        // the first click will create the rootTile (in the real world, this will be the one getting power)
+        rootTile = new Tile(p.mouseX, p.mouseY, p);
+        rootTile.root = true;
+        tiles.push(rootTile);
+      } else if (insideOf && mouseInTile(insideOf.x, insideOf.y)) {
+        // if the mouse is inside the last recorded potential neighbor that was hovered over, create new tile
+        const newTile = new Tile(insideOf.x, insideOf.y, p);
+        const centerDist = 2 * PhysicalTile.innerRadius();
+        const neighbors = [];
+
+        for (let i=0; i<6; i++) {
+          // get coordinates of potential neighbors of this new tile
+          let nX = newTile.x + centerDist * p.cos(PI / 6 + i * PI / 3);
+          let nY = newTile.y - centerDist * p.sin(PI / 6 + i * PI / 3);
+          // call .toFixed(5) in order to hide inaccuracies of floating point math
+          neighbors.push({x: nX.toFixed(5), y: nY.toFixed(5), index: i});
+        }
+
+        for (let tile of tiles) {
+          // iterate through all existing tiles and see if any of these tiles are neighbors to the newly created tile
+          for (let neighbor of neighbors) {
+            if (neighbor.x === tile.x.toFixed(5) && neighbor.y === tile.y.toFixed(5)) {
+              // if they are neighbors, add them to each others neighbor lists
+              newTile.physical.neighbors[neighbor.index] = tile;
+              const oppositeIndex = (neighbor.index + 3) % 6;
+              tile.physical.neighbors[oppositeIndex] = newTile;
+            }
+          }
+        }
+
+        tiles.push(newTile);
+      }
+    });
 
     runBtn = p.createButton('Run');
     runBtn.position(20, 20);
@@ -48,19 +84,25 @@ const sketch = (p) => {
       for (let tile of tiles) {
         tile.start();
       }
+      return false;
     });
 
     stopBtn = p.createButton('Stop');
-    stopBtn.position(70, 20);
+    stopBtn.position(170, 20);
     stopBtn.mousePressed(() => {
       for (let tile of tiles) {
         tile.stop();
       }
+      return false;
     });
   };
 
-  let hoveredTile = undefined;
-  let insideOf = undefined;
+  p.windowResized = () => {
+    p.resizeCanvas(window.innerWidth, window.innerHeight);
+  }
+
+  let hoveredTile;
+  let insideOf;
   let neighborBorder = 220;
 
   p.draw = function() {
@@ -114,41 +156,7 @@ const sketch = (p) => {
     p.frameRate(30);
   };
 
-  p.mousePressed = function() {
-    if (!rootTile) {
-      // the first click will create the rootTile (in the real world, this will be the one getting power)
-      rootTile = new Tile(p.mouseX, p.mouseY, p);
-      rootTile.root = true;
-      tiles.push(rootTile);
-    } else if (insideOf && mouseInTile(insideOf.x, insideOf.y)) {
-      // if the mouse is inside the last recorded potential neighbor that was hovered over, create new tile
-      const newTile = new Tile(insideOf.x, insideOf.y, p);
-      const centerDist = 2 * PhysicalTile.innerRadius();
-      const neighbors = [];
 
-      for (let i=0; i<6; i++) {
-        // get coordinates of potential neighbors of this new tile
-        let nX = newTile.x + centerDist * p.cos(PI / 6 + i * PI / 3);
-        let nY = newTile.y - centerDist * p.sin(PI / 6 + i * PI / 3);
-        // call .toFixed(5) in order to hide inaccuracies of floating point math
-        neighbors.push({x: nX.toFixed(5), y: nY.toFixed(5), index: i});
-      }
-
-      for (let tile of tiles) {
-        // iterate through all existing tiles and see if any of these tiles are neighbors to the newly created tile
-        for (let neighbor of neighbors) {
-          if (neighbor.x === tile.x.toFixed(5) && neighbor.y === tile.y.toFixed(5)) {
-            // if they are neighbors, add them to each others neighbor lists
-            newTile.physical.neighbors[neighbor.index] = tile;
-            const oppositeIndex = (neighbor.index + 3) % 6;
-            tile.physical.neighbors[oppositeIndex] = newTile;
-          }
-        }
-      }
-
-      tiles.push(newTile);
-    }
-  };
 };
 
-new p5(sketch, containerElement);
+const p5Inst = new p5(sketch, containerElement);
