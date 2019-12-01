@@ -2,7 +2,7 @@ import PhysicalTile from "./PhysicalTile";
 import ApplicationNode from "./ApplicationNode";
 import NetworkNode from "./NetworkNode";
 
-const PI = 3.141592653589793;
+const PI = Math.PI;
 
 export default class Tile {
   constructor(x, y) {

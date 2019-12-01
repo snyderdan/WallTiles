@@ -8,11 +8,16 @@
     "p5": "^0.10.2"
   },
   "devDependencies": {
-    "javascript-state-machine": "^3.1.0",
+    "@babel/core": "^7.7.4",
+    "@babel/preset-env": "^7.7.4",
+    "babel-loader": "^8.0.6",
+    "html-webpack-plugin": "^3.2.0",
     "webpack": "^4.41.2",
-    "webpack-cli": "^3.1.2"
+    "webpack-cli": "^3.1.2",
+    "webpack-dev-server": "^3.9.0"
   },
   "scripts": {
+    "start": "webpack-dev-server --open",
     "build": "webpack --config webpack.config.js --mode=development --display-error-details --progress --color",
     "production": "webpack --config webpack.config.js --mode=production --display-error-details --progress --color",
     "test": "echo \"Error: no test specified\" && exit 1"

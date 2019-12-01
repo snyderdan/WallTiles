@@ -2,7 +2,7 @@ import p5 from 'p5';
 import Tile from './Tile';
 import PhysicalTile from "./PhysicalTile";
 
-const PI = 3.141592653589793;
+const PI = Math.PI;
 const containerElement = document.getElementById('p5-container');
 
 const sketch = (p) => {
@@ -163,4 +163,4 @@ const sketch = (p) => {
   };
 };
 
-new p5(sketch, containerElement);
+const p5Inst = new p5(sketch, containerElement);
