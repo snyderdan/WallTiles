@@ -4,9 +4,11 @@
   "description": "",
   "dependencies": {
     "auto-bind": "^3.0.0",
+    "events": "^3.0.0",
     "p5": "^0.10.2"
   },
   "devDependencies": {
+    "javascript-state-machine": "^3.1.0",
     "webpack": "^4.41.2",
     "webpack-cli": "^3.1.2"
   },

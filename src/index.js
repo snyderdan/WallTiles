@@ -9,7 +9,11 @@ const sketch = (p) => {
   let runBtn;
   let stopBtn;
   let rootTile;
+  let running = false;
   const tiles = [];
+  let hoveredTile = undefined;
+  let insideOf = undefined;
+  let neighborBorder = 220;
 
   const drawTile = (x, y, color, border) => {
     p.fill(color);
@@ -36,89 +40,56 @@ const sketch = (p) => {
     if (dx > PhysicalTile.radius() || dy > PhysicalTile.innerRadius()) return false;
     // otherwise, check if point is below sloped side of hexagon
     // slope is -sqrt(3), offset is sqrt(3) * radius [derived from 2 points: (radius / 2, innerRadius) and (radius, 0)]
-    return dy <= - Math.sqrt(3) * dx + Math.sqrt(3) * PhysicalTile.radius();
+    return dy <= -Math.sqrt(3) * dx + Math.sqrt(3) * PhysicalTile.radius();
   };
 
-  p.setup = function() {
-    p.createCanvas(700, 400);
-
-    runBtn = p.createButton('Run');
-    runBtn.position(20, 20);
-    runBtn.mousePressed(() => {
-      for (let tile of tiles) {
-        tile.start();
-      }
-    });
-
-    stopBtn = p.createButton('Stop');
-    stopBtn.position(70, 20);
-    stopBtn.mousePressed(() => {
-      for (let tile of tiles) {
-        tile.stop();
-      }
-    });
-  };
-
-  let hoveredTile = undefined;
-  let insideOf = undefined;
-  let neighborBorder = 220;
-
-  p.draw = function() {
-    p.background(220);
-    for (let tile of tiles) {
-      // draw existing tile
-      drawTile(tile.x, tile.y,
-          p.color(tile.physical.r_col, tile.physical.g_col, tile.physical.b_col));
-
-      if (hoveredTile !== tile && mouseInTile(tile.x, tile.y)) {
-        // if this tile is hovered over, but is NOT the hovered tile, assign hoveredTile, and reset neighborBorder for fade in
-        hoveredTile = tile;
-        neighborBorder = 220;
-      }
-
-      if (hoveredTile === tile) {
-        // if this tile is hovered, draw outlines of potential neighbor tiles that can be added
-        let inBounds = mouseInTile(tile.x, tile.y);
-        const centerDist = 2 * PhysicalTile.innerRadius();  // distance between the center of two neighbors
-        for (let i=0; i<6; i++) {
-          // iterate over neighbors; only draw a potential neighbor if no neighbor is present already
-          if (!tile.physical.neighbors[i]) {
-            // calculate center of potential neighbor
-            let nX = tile.x + centerDist * p.cos(PI / 6 + i * PI / 3);
-            let nY = tile.y - centerDist * p.sin(PI / 6 + i * PI / 3);
-            let color = 220;
-
-            if (mouseInTile(nX, nY)) {
-              // if mouse is inside of this neighbor, flag the mouse as still in bounds
-              inBounds = true;
-              if (insideOf && nX === insideOf.x && nY === insideOf.y) {
-                // if this neighbor continues to be hovered, continue to make it lighter
-                color += 5 * insideOf.count;
-                insideOf.count += 1;
-              } else {
-                // otherwise, assign as the new neighbor being hovered
-                insideOf = {x: nX, y: nY, count: 0};
-              }
-            }
-            // draw the potential neighbor, and a point at its center
-            drawTile(nX, nY, color, neighborBorder);
-            p.point(nX, nY);
-          }
-        }
-        // if mouse is not 'in bounds' (not in the current tile, or any potential neighbors), clear hoveredTile
-        if (!inBounds) hoveredTile = undefined;
-        if (neighborBorder > 100) neighborBorder -= 10;
-      }
+  const checkHovered = (tile) => {
+    if (hoveredTile !== tile && mouseInTile(tile.x, tile.y)) {
+      // if this tile is hovered over, but is NOT the hovered tile, assign hoveredTile, and reset neighborBorder for fade in
+      hoveredTile = tile;
+      neighborBorder = 220;
     }
 
-    p.frameRate(30);
+    if (hoveredTile === tile) {
+      // if this tile is hovered, draw outlines of potential neighbor tiles that can be added
+      let inBounds = mouseInTile(tile.x, tile.y);
+      const centerDist = 2 * PhysicalTile.innerRadius();  // distance between the center of two neighbors
+      for (let i = 0; i < 6; i++) {
+        // iterate over neighbors; only draw a potential neighbor if no neighbor is present already
+        if (!tile.physical.neighbors[i]) {
+          // calculate center of potential neighbor
+          let nX = tile.x + centerDist * p.cos(PI / 6 + i * PI / 3);
+          let nY = tile.y - centerDist * p.sin(PI / 6 + i * PI / 3);
+          let color = 220;
+
+          if (mouseInTile(nX, nY)) {
+            // if mouse is inside of this neighbor, flag the mouse as still in bounds
+            inBounds = true;
+            if (insideOf && nX === insideOf.x && nY === insideOf.y) {
+              // if this neighbor continues to be hovered, continue to make it lighter
+              color += 5 * insideOf.count;
+              insideOf.count += 1;
+            } else {
+              // otherwise, assign as the new neighbor being hovered
+              insideOf = {x: nX, y: nY, count: 0};
+            }
+          }
+          // draw the potential neighbor, and a point at its center
+          drawTile(nX, nY, color, neighborBorder);
+          p.point(nX, nY);
+        }
+      }
+      // if mouse is not 'in bounds' (not in the current tile, or any potential neighbors), clear hoveredTile
+      if (!inBounds) hoveredTile = undefined;
+      if (neighborBorder > 100) neighborBorder -= 10;
+    }
   };
 
-  p.mousePressed = function() {
+  p.mousePressed = () => {
     if (!rootTile) {
       // the first click will create the rootTile (in the real world, this will be the one getting power)
-      rootTile = new Tile(p.mouseX, p.mouseY, p);
-      rootTile.root = true;
+      rootTile = new Tile(p.mouseX, p.mouseY);
+      rootTile.physical.root = true;
       tiles.push(rootTile);
     } else if (insideOf && mouseInTile(insideOf.x, insideOf.y)) {
       // if the mouse is inside the last recorded potential neighbor that was hovered over, create new tile
@@ -126,7 +97,7 @@ const sketch = (p) => {
       const centerDist = 2 * PhysicalTile.innerRadius();
       const neighbors = [];
 
-      for (let i=0; i<6; i++) {
+      for (let i = 0; i < 6; i++) {
         // get coordinates of potential neighbors of this new tile
         let nX = newTile.x + centerDist * p.cos(PI / 6 + i * PI / 3);
         let nY = newTile.y - centerDist * p.sin(PI / 6 + i * PI / 3);
@@ -139,15 +110,56 @@ const sketch = (p) => {
         for (let neighbor of neighbors) {
           if (neighbor.x === tile.x.toFixed(5) && neighbor.y === tile.y.toFixed(5)) {
             // if they are neighbors, add them to each others neighbor lists
-            newTile.physical.neighbors[neighbor.index] = tile;
+            newTile.physical.neighbors[neighbor.index] = tile.physical;
             const oppositeIndex = (neighbor.index + 3) % 6;
-            tile.physical.neighbors[oppositeIndex] = newTile;
+            tile.physical.neighbors[oppositeIndex] = newTile.physical;
           }
         }
       }
 
       tiles.push(newTile);
     }
+  };
+
+  p.setup = () => {
+    p.createCanvas(700, 400);
+
+    runBtn = p.createButton('Run');
+    runBtn.position(20, 20);
+    runBtn.mousePressed(() => {
+      console.log("Run pressed");
+      running = true;
+    });
+
+    stopBtn = p.createButton('Stop');
+    stopBtn.position(70, 20);
+    stopBtn.mousePressed(() => {
+      console.log("Stop pressed");
+      running = false;
+    });
+  };
+
+  p.draw = () => {
+    p.background(220);
+
+    for (let tile of tiles) {
+      // draw existing tile
+      drawTile(tile.x, tile.y,
+          p.color(tile.physical.r_col, tile.physical.g_col, tile.physical.b_col));
+
+      try {
+        if (running) {
+          tile.step();
+        } else {
+          checkHovered(tile);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+
+    }
+
+    p.frameRate(30);
   };
 };
 

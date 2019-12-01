@@ -1,6 +1,6 @@
 import PhysicalTile from "./PhysicalTile";
-import NetworkNode from "./NetworkNode";
 import ApplicationNode from "./ApplicationNode";
+import NetworkNode from "./NetworkNode";
 
 const PI = 3.141592653589793;
 
@@ -13,7 +13,8 @@ export default class Tile {
     this.application = new ApplicationNode(this.physical, this.network);
   }
 
-  update() {
+  step() {
+    this.application.process();
     /* TODO: split following code to relevant layers of networking code
     if (this.root && !this.id) {
       // if we're the root tile, with no ID, begin ID assignment process
@@ -126,15 +127,6 @@ export default class Tile {
       window.requestAnimationFrame(this.update);
     }
      */
-  }
-
-  start() {
-    this.running = true;
-    window.requestAnimationFrame(this.update);
-  }
-
-  stop() {
-    this.running = false;
   }
 }
 

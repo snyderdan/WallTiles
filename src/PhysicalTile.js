@@ -3,8 +3,10 @@ import autoBind from "auto-bind";
 const RADIUS = 20;
 
 export default class PhysicalTile {
-    constructor() {
+    constructor(x, y) {
         autoBind(this);
+        this.x = x;
+        this.y = y;
         this.r_col = Math.floor(Math.random() * 256);
         this.g_col = Math.floor(Math.random() * 256);
         this.b_col = Math.floor(Math.random() * 256);
@@ -22,14 +24,14 @@ export default class PhysicalTile {
         return !!this.neighbors[index];
     }
 
-    transmit(message, index) {
+    transmit(index, message) {
         // do nothing if neighbor isn't present
         if (!this.hasNeighbor(index)) return;
 
         const neighbor = this.neighbors[index];
         neighbor.receive({
-            from: (index + 3) % 6,
-            payload: message,
+            ...message,
+            neighbor: (index + 3) % 6,
         });
     }
 
@@ -41,7 +43,7 @@ export default class PhysicalTile {
         return this.toProcess.length > 0;
     }
 
-    getNext() {
+    getPacket() {
         return this.toProcess.shift();
     }
 
