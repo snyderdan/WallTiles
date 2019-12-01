@@ -85,7 +85,7 @@ const sketch = (p) => {
     }
   };
 
-  p.mousePressed = () => {
+  const mousePressed = () => {
     if (!rootTile) {
       // the first click will create the rootTile (in the real world, this will be the one getting power)
       rootTile = new Tile(p.mouseX, p.mouseY);
@@ -122,7 +122,8 @@ const sketch = (p) => {
   };
 
   p.setup = () => {
-    p.createCanvas(700, 400);
+    const cnv = p.createCanvas(window.innerWidth, window.innerHeight);
+    cnv.mousePressed(mousePressed);
 
     runBtn = p.createButton('Run');
     runBtn.position(20, 20);
@@ -137,6 +138,10 @@ const sketch = (p) => {
       console.log("Stop pressed");
       running = false;
     });
+  };
+
+  p.windowResized = () => {
+    p.resizeCanvas(window.innerWidth, window.innerHeight);
   };
 
   p.draw = () => {
