@@ -36,15 +36,29 @@ export default class NetworkNode {
     initialize() {
         this.processState();
         this.processPackets();
-        return false;   // TODO: find a way to process packets even when fully initialized
-        //return this.is(INITIALIZED);
+        return this.is(INITIALIZED);
     }
 
+    /*
+     *******************************************************************************************************************
+     * Utility methods
+     *******************************************************************************************************************
+     */
     sendAck() {
         this.physical.transmit(this.parent, {
             type: BFS_ASSIGN_ACK,
             nextId: this.nextId,
         });
+    }
+
+    nextNeighborIndex() {
+        for (let i=this.assigning + 1; i<6; i++) {
+            if (this.physical.hasNeighbor(i)) {
+                return i;
+            }
+        }
+
+        return undefined;
     }
 
     /*
@@ -95,16 +109,6 @@ export default class NetworkNode {
             type: BFS_ASSIGN_ID,
             id: this.nextId,
         });
-    }
-
-    nextNeighborIndex() {
-        for (let i=this.assigning + 1; i<6; i++) {
-            if (this.physical.hasNeighbor(i)) {
-                return i;
-            }
-        }
-
-        return undefined;
     }
 
     /*
