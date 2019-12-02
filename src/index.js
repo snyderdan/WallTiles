@@ -8,7 +8,9 @@ const containerElement = document.getElementById('p5-container');
 const sketch = (p) => {
   let runBtn;
   let stopBtn;
+  let toggleIdBtn;
   let rootTile;
+  let showIds = false;
   let running = false;
   const tiles = [];
   let hoveredTile = undefined;
@@ -124,6 +126,8 @@ const sketch = (p) => {
   p.setup = () => {
     const cnv = p.createCanvas(window.innerWidth, window.innerHeight);
     cnv.mousePressed(mousePressed);
+    p.textSize(12);
+    p.textAlign(p.CENTER);
 
     runBtn = p.createButton('Run');
     runBtn.position(20, 20);
@@ -138,6 +142,12 @@ const sketch = (p) => {
       console.log("Stop pressed");
       running = false;
     });
+
+    toggleIdBtn = p.createButton('Toggle network IDs');
+    toggleIdBtn.position(120, 20);
+    toggleIdBtn.mousePressed(() => {
+      showIds = !showIds;
+    });
   };
 
   p.windowResized = () => {
@@ -151,6 +161,11 @@ const sketch = (p) => {
       // draw existing tile
       drawTile(tile.x, tile.y,
           p.color(tile.physical.r_col, tile.physical.g_col, tile.physical.b_col));
+
+      if (showIds) {
+        p.fill(0);
+        p.text(tile.network.id || 'N/A', tile.x, tile.y);
+      }
 
       try {
         if (running) {

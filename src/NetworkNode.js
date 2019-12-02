@@ -178,7 +178,9 @@ export default class NetworkNode {
         // no action necessary for NACK (currently)
         if (packet.type === BFS_ASSIGN_NACK)  return;
         // process ACK normally
-        this.tableChange = this.nextId !== packet.nextId;   // nothing changed if nextId returned matches our current (id we sent)
+        console.log(`${this.id} got ACK from neighbor ${packet.neighbor}`);
+        // mark the table as changed if the nextId we got back is different from the one we sent (our current nextId)
+        this.tableChange |= this.nextId !== packet.nextId;
         this.nextId = packet.nextId;
 
         if (this.routeTable[packet.neighbor] === undefined)
