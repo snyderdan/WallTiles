@@ -135,6 +135,10 @@ export default class NetworkNode {
             } else {
                 console.log(`${this.id} now initialized`);
                 this.state = INITIALIZED;
+                // add neighbor addresses to routing table (some won't be our children)
+                Object.entries(this.neighborTable).forEach((entry) => {
+                    this.routeTable[entry[1]] = entry[0];
+                })
             }
 
             return;
@@ -215,7 +219,6 @@ export default class NetworkNode {
         this.state = ASSIGNING;
         this.assigning++;
         // record address of neighbor we communicated with (even if it's not a child)
-        this.routeTable[packet.fromAddress] = packet.neighbor;
         this.neighborTable[packet.neighbor] = packet.fromAddress;
 
         // no action necessary for NACK (currently)
