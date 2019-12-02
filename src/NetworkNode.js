@@ -40,7 +40,9 @@ export default class NetworkNode {
     }
 
     forwardPacket(packet) {
-        this.physical.transmit(this.routeTable[packet.target], packet);
+        // if we have an entry for where the packet should go, send it there. Otherwise, forward to parent
+        const forwardTo = this.routeTable[packet.target] || this.parent;
+        this.physical.transmit(forwardTo, packet);
     }
 
     send(target, message) {
@@ -210,6 +212,9 @@ export default class NetworkNode {
         // a valid ACK/NACK moves us to assigning the next child
         this.state = ASSIGNING;
         this.assigning++;
+        // record address of neighbor we communicated with (even if it's not a child)
+        this.routeTable[packet.fromAddress] = packet.neighbor;
+        this.neighborTable[packet.neighbor] = packet.fromAddress;
 
         // no action necessary for NACK (currently)
         if (packet.type === BFS_ASSIGN_NACK)  return;
@@ -219,8 +224,6 @@ export default class NetworkNode {
         this.tableChange |= this.nextId !== packet.nextId;
         this.nextId = packet.nextId;
 
-        this.routeTable[packet.fromAddress] = packet.neighbor;
-        this.neighborTable[packet.neighbor] = packet.fromAddress;
         packet.downstream.forEach((address) => {
             this.routeTable[address] = packet.neighbor;
         });
