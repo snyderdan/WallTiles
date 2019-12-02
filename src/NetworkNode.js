@@ -41,7 +41,8 @@ export default class NetworkNode {
 
     forwardPacket(packet) {
         // if we have an entry for where the packet should go, send it there. Otherwise, forward to parent
-        const forwardTo = this.routeTable[packet.target] || this.parent;
+        const tableEntry = this.routeTable[packet.target];
+        const forwardTo = (tableEntry !== undefined) ? tableEntry : this.parent;
         this.physical.transmit(forwardTo, packet);
     }
 
@@ -199,6 +200,7 @@ export default class NetworkNode {
         } else {
             this.physical.transmit(packet.neighbor, {
                 type: BFS_ASSIGN_NACK,
+                fromAddress: this.id,
             });
         }
     }
