@@ -13,9 +13,9 @@ export default class NetworkNode {
     constructor(physical) {
         // essential variables used to route packets in the network layer
         this.physical = physical;
-        this.parent = undefined;
-        this.id = undefined;
-        this.routeTable = {};
+        this.parent = null;
+        this.id = null;
+        this.routeTable = [];
 
         // variables only necessary for the initialization process
         this.state = UNINITIALIZED;
@@ -29,9 +29,6 @@ export default class NetworkNode {
      * Core network node functions
      *******************************************************************************************************************
      */
-    is(state) {
-        return this.state === state;
-    }
 
     initialize() {
         this.processState();
@@ -41,24 +38,33 @@ export default class NetworkNode {
 
     /*
      *******************************************************************************************************************
-     * Utility methods
+     * Utility methods for initialization process
      *******************************************************************************************************************
      */
+    is(state) {
+        return this.state === state;
+    }
+
     sendAck() {
+        const downstream = new Set([this.id]);
+        Object.values(this.routeTable).forEach((set) => set.forEach(downstream.add, downstream));
+
         this.physical.transmit(this.parent, {
             type: BFS_ASSIGN_ACK,
             nextId: this.nextId,
+            downstream: downstream,
         });
     }
 
     nextNeighborIndex() {
-        for (let i=this.assigning + 1; i<6; i++) {
+        // assigning will be incremented upon receiving ACK or NACK to prevent assigning the same child over and over
+        for (let i=this.assigning; i<6; i++) {
             if (this.physical.hasNeighbor(i)) {
                 return i;
             }
         }
 
-        return undefined;
+        return null;
     }
 
     /*
@@ -88,7 +94,7 @@ export default class NetworkNode {
 
     performAssignment() {
         this.assigning = this.nextNeighborIndex();
-        if (this.assigning === undefined) {
+        if (this.assigning === null) {
             // if there is nothing left to assign, then stop assignment
             this.sendAck();
 
@@ -125,11 +131,8 @@ export default class NetworkNode {
                     break;
 
                 case BFS_ASSIGN_ACK:
-                    this.handleAck(packet);
-                    break;
-
                 case BFS_ASSIGN_NACK:
-                    this.handleNack(packet);
+                    this.handleAckNack(packet);
                     break;
 
                 default:
@@ -151,7 +154,7 @@ export default class NetworkNode {
         } else if (this.is(ASSIGNED) && packet.neighbor === this.parent) {
             // follow-up assignment from parent means we assign to our children
             this.tableChange = false;
-            this.assigning = -1;
+            this.assigning = 0;
             this.nextId = packet.id;
             this.state = ASSIGNING;
 
@@ -162,25 +165,26 @@ export default class NetworkNode {
         }
     }
 
-    handleAck(packet) {
-        if (!this.is(WAITING)) {
-            console.log(`Invalid ACK packet received: ${packet}`);
+    handleAckNack(packet) {
+        // if we aren't waiting, or get a packet from a neighbor we we'ren't assigning to, something went wrong
+        if (!this.is(WAITING) || packet.neighbor !== this.assigning) {
+            console.log(`Invalid ACK/NACK packet received: ${packet}`);
             return;
         }
+        // a valid ACK/NACK moves us to assigning the next child
+        this.state = ASSIGNING;
+        this.assigning++;
 
+        // no action necessary for NACK (currently)
+        if (packet.type === BFS_ASSIGN_NACK)  return;
+        // process ACK normally
+        this.tableChange = this.nextId !== packet.nextId;   // nothing changed if nextId returned matches our current (id we sent)
         this.nextId = packet.nextId;
-        this.state = ASSIGNING;
-        // TODO: build default route table, and actually check for changes
-        this.tableChange = true;
-    }
 
-    handleNack(packet) {
-        if (!this.is(WAITING)) {
-            console.log(`Invalid NACK packet received: ${packet}`);
-            return;
-        }
+        if (this.routeTable[packet.neighbor] === undefined)
+            this.routeTable[packet.neighbor] = new Set();
 
-        this.state = ASSIGNING;
-        // TODO: possibly transmit route information on NACKs? Could be used to find shortest routes without running BFS from every node
+        const set = this.routeTable[packet.neighbor];
+        packet.downstream.forEach(set.add, set);
     }
 }
