@@ -2,6 +2,7 @@
 const BFS_ASSIGN_ID = 1;
 const BFS_ASSIGN_ACK = 2;
 const BFS_ASSIGN_NACK = 3;
+const NETWORK_ROUTE = 4;
 
 const UNINITIALIZED = 'uninitialized';
 const ASSIGNED = 'assigned';
@@ -16,6 +17,8 @@ export default class NetworkNode {
         this.parent = null;
         this.id = null;
         this.routeTable = [];
+        this.neighborTable = [];
+        this.received = [];
 
         // variables only necessary for the initialization process
         this.state = UNINITIALIZED;
@@ -36,6 +39,31 @@ export default class NetworkNode {
         return this.is(INITIALIZED);
     }
 
+    forwardPacket(packet) {
+        this.physical.transmit(this.routeTable[packet.target], packet);
+    }
+
+    send(target, message) {
+        this.forwardPacket({
+            ...message,
+            type: NETWORK_ROUTE,
+            target: target,
+            source: this.id,
+        });
+    }
+
+    sendToNeighbor(neighbor, message) {
+        this.send(this.neighborTable[neighbor], message);
+    }
+
+    hasPacket() {
+        return this.received.length > 0;
+    }
+
+    getPacket() {
+        return this.received.shift();
+    }
+
     /*
      *******************************************************************************************************************
      * Utility methods for initialization process
@@ -46,13 +74,13 @@ export default class NetworkNode {
     }
 
     sendAck() {
-        const downstream = new Set([this.id]);
-        Object.values(this.routeTable).forEach((set) => set.forEach(downstream.add, downstream));
+        const downstream = Object.keys(this.routeTable);
 
         this.physical.transmit(this.parent, {
             type: BFS_ASSIGN_ACK,
             nextId: this.nextId,
             downstream: downstream,
+            fromAddress: this.id,
         });
     }
 
@@ -130,13 +158,21 @@ export default class NetworkNode {
                     this.handleAssign(packet);
                     break;
 
+                case NETWORK_ROUTE:
+                    if (packet.target === this.id) {
+                        this.received.push(packet);
+                    } else {
+                        this.forwardPacket(packet);
+                    }
+                    break;
+
                 case BFS_ASSIGN_ACK:
                 case BFS_ASSIGN_NACK:
                     this.handleAckNack(packet);
                     break;
 
                 default:
-                    console.log("Bad message in initialization process: ", packet);
+                    console.log("Bad network packet: ", packet);
             }
         }
     }
@@ -183,10 +219,10 @@ export default class NetworkNode {
         this.tableChange |= this.nextId !== packet.nextId;
         this.nextId = packet.nextId;
 
-        if (this.routeTable[packet.neighbor] === undefined)
-            this.routeTable[packet.neighbor] = new Set();
-
-        const set = this.routeTable[packet.neighbor];
-        packet.downstream.forEach(set.add, set);
+        this.routeTable[packet.fromAddress] = packet.neighbor;
+        this.neighborTable[packet.neighbor] = packet.fromAddress;
+        packet.downstream.forEach((address) => {
+            this.routeTable[address] = packet.neighbor;
+        });
     }
 }
