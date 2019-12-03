@@ -43,7 +43,7 @@ export default class NetworkNode {
         // if we have an entry for where the packet should go, send it there. Otherwise, forward to parent
         const tableEntry = this.routeTable[packet.target];
         const forwardTo = (tableEntry !== undefined) ? tableEntry : this.parent;
-        this.physical.transmit(forwardTo, packet);
+        setTimeout(() => this.physical.transmit(forwardTo, packet), 1);
     }
 
     send(target, message) {
