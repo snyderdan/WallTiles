@@ -25,6 +25,7 @@ export default class NetworkNode {
         this.assigning = 0;
         this.nextId = 1;
         this.tableChange = false;
+        this.ignore = new Set();
     }
 
     /*
@@ -84,13 +85,14 @@ export default class NetworkNode {
             nextId: this.nextId,
             downstream: downstream,
             fromAddress: this.id,
+            initialized: this.is(INITIALIZED),
         });
     }
 
     nextNeighborIndex() {
         // assigning will be incremented upon receiving ACK or NACK to prevent assigning the same child over and over
         for (let i=this.assigning; i<6; i++) {
-            if (this.physical.hasNeighbor(i)) {
+            if (this.physical.hasNeighbor(i) && !this.ignore.has(i)) {
                 return i;
             }
         }
@@ -221,8 +223,11 @@ export default class NetworkNode {
         // record address of neighbor we communicated with (even if it's not a child)
         this.neighborTable[packet.neighbor] = packet.fromAddress;
 
-        // no action necessary for NACK (currently)
-        if (packet.type === BFS_ASSIGN_NACK)  return;
+        // If it is a NACK add to the ignore list
+        if (packet.type === BFS_ASSIGN_NACK) {
+            this.ignore.add(packet.neighbor);
+            return;     // no further action required
+        }
         // process ACK normally
         console.log(`${this.id} got ACK from neighbor ${packet.neighbor}`);
         // mark the table as changed if the nextId we got back is different from the one we sent (our current nextId)
@@ -232,5 +237,10 @@ export default class NetworkNode {
         packet.downstream.forEach((address) => {
             this.routeTable[address] = packet.neighbor;
         });
+
+        if (packet.initialized) {
+            // if the neighbor is initialized, add it to the ignore list
+            this.ignore.add(packet.neighbor);
+        }
     }
 }
