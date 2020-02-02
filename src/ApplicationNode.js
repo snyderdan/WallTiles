@@ -42,12 +42,12 @@ export default class ApplicationNode {
             this.initialized = this.network.initialize();
 
             if (this.initialized && this.physical.isRoot())
-                this.currentValue = Math.sin(this.physical.getMillis() / 100);
+                this.currentValue = Math.sin(this.physical.getMillis() / 200);
 
         } else {
             const millis = this.physical.getMillis();
-            if (this.physical.isRoot() && millis > (this.lastFrame + 10)) {
-                this.GYRWave(Math.sin(millis / 100));
+            if (this.physical.isRoot() && millis > (this.lastFrame + 20)) {
+                this.GYRWave(Math.sin(millis / 200));
                 this.lastFrame = millis;
                 this.step++;
             }
